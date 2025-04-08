@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ProductsExports;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Excel;
 
 class ProductController extends Controller
 {
@@ -90,5 +92,10 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('products.index')->with('success', 'Product berhasil dihapus.');
+    }
+
+    public function export()
+    {
+        return Excel::download(new ProductsExports, 'product.xlsx');
     }
 }
