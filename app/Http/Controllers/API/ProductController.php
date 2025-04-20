@@ -48,6 +48,9 @@ class ProductController extends Controller
         return new ProductResource($product->load('category'));
     }
 
+
+
+
     /**
      * Show the form for editing the specified resource.
      */

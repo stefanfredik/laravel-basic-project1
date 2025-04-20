@@ -5,19 +5,43 @@ namespace App\Http\Controllers;
 use App\Exports\ProductsExports;
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Excel;
+use Illuminate\Support\Storage;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $query = Product::with('category');
+
+        if ($request->has('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhereHas('category', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+
+        if ($request->has('category') && $request->category != '') {
+            $query->where('category_id', $request->category());
+        }
+
+
+
         $products = Product::paginate(10);
-        return view('products.index', compact('products'));
+        $categories = Category::all();
+        return view('products.index', compact('products', 'categories'));
     }
 
     /**
@@ -39,9 +63,15 @@ class ProductController extends Controller
         ]);
 
 
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $validated['image_path'] = $path;
+        }
+
+
         $validated['slug'] = Str::slug($validated['name']);
 
-        Category::create($validated);
+        Product::create($validated);
 
 
         return redirect()->route('products.index')->with('success', 'Produk berhasil dibuat.');
@@ -72,6 +102,13 @@ class ProductController extends Controller
             'name' =>  'required|string|max:255|unique:products,update',
             'description' => 'nullable|string'
         ]);
+
+
+        if ($request->hashFile('image')) {
+            if ($product->image_path && Storage::disk('public')->exist($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+        }
 
         $validated['slug'] = Str::slug($validated['name']);
 

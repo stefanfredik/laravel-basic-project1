@@ -27,6 +27,8 @@ Route::middleware(['auth'], 'verified')->group(function () {
     Route::put('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.update-password');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Add export route for products
+    Route::get('products/export', [ProductController::class, 'export'])->name('products.export');
 
     Route::resources([
         'categories' => CategoryController::class,
