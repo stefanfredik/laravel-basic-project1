@@ -11,9 +11,34 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $categories = Category::paginate(10);
+        $query = Category::query();
+
+        // Search by name or description
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by products
+        if ($request->has('has_products')) {
+            if ($request->has_products === '1') {
+                $query->whereHas('products');
+            } elseif ($request->has_products === '0') {
+                $query->whereDoesntHave('products');
+            }
+        }
+
+        // Sorting
+        $sort = $request->sort ?? 'name';
+        $direction = $request->direction ?? 'asc';
+        $query->orderBy($sort, $direction);
+
+        $categories = $query->paginate(10)->withQueryString();
         return view('categories.index', compact('categories'));
     }
 
@@ -55,7 +80,10 @@ class CategoryController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Category $category) {}
+    public function edit(Category $category)
+    {
+        return view('categories.edit', compact('category'));
+    }
 
     /**
      * Update the specified resource in storage.
@@ -63,15 +91,13 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name' . $category->id,
+            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
             'description' => 'nullable|string'
         ]);
-
 
         $validated['slug'] = Str::slug($validated['name']);
 
         $category->update($validated);
-
 
         return redirect()->route('categories.index')->with('success', 'Kategori berhasil diperbaharui.');
     }

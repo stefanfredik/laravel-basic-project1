@@ -18,19 +18,31 @@
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+            <div class="flex">
+                <!-- Sidebar -->
+                <div class="w-64 min-h-screen">
+                    @include('layouts.sidebar')
+                </div>
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+                <!-- Main Content -->
+                <div class="flex-1">
+                    <!-- Page Heading -->
+                    @isset($header)
+                        <header class="bg-white shadow">
+                            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                                {{ $header }}
+                            </div>
+                        </header>
+                    @endisset
+
+                    <!-- Page Content -->
+                    <main class="py-6">
+                        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                            {{ $slot }}
+                        </div>
+                    </main>
+                </div>
+            </div>
         </div>
     </body>
 </html>

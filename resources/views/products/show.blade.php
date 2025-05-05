@@ -5,8 +5,10 @@
                 {{ __('Detail Produk') }}
             </h2>
             <div class="flex gap-2">
-                <a href="{{ route('products.edit', $product) }}" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">Edit</a>
-                <a href="{{ route('products.index') }}" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Kembali</a>
+                <a href="{{ route('products.edit', $product) }}"
+                    class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">Edit</a>
+                <a href="{{ route('products.index') }}"
+                    class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Kembali</a>
             </div>
         </div>
     </x-slot>
@@ -17,8 +19,9 @@
                 <div class="p-6 bg-white border-b border-gray-200">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            @if($product->image_path)
-                                <img src="{{ Storage::url($product->image_path) }}" alt="{{ $product->name }}" class="w-full rounded-lg shadow-lg">
+                            @if ($product->image_path)
+                                <img src="{{ Storage::url($product->image_path) }}" alt="{{ $product->name }}"
+                                    class="w-full rounded-lg shadow-lg">
                             @else
                                 <div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
                                     <span class="text-gray-500">No Image</span>
@@ -28,13 +31,13 @@
 
                         <div>
                             <h3 class="text-2xl font-bold text-gray-900 mb-4">{{ $product->name }}</h3>
-                            
+
                             <div class="grid grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label class="text-sm font-medium text-gray-700">SKU</label>
                                     <p class="mt-1">{{ $product->sku }}</p>
                                 </div>
-                                
+
                                 <div>
                                     <label class="text-sm font-medium text-gray-700">Kategori</label>
                                     <p class="mt-1">{{ $product->category->name }}</p>
@@ -48,7 +51,8 @@
                                 <div>
                                     <label class="text-sm font-medium text-gray-700">Stok</label>
                                     <p class="mt-1">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $product->stock_quantity < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                                        <span
+                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $product->stock_quantity < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
                                             {{ $product->stock_quantity }}
                                         </span>
                                     </p>
@@ -67,7 +71,8 @@
                                         <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                                             <div>
                                                 <p class="text-sm font-medium">{{ $item->stockReceipt->date }}</p>
-                                                <p class="text-xs text-gray-500">{{ $item->stockReceipt->reference_number }}</p>
+                                                <p class="text-xs text-gray-500">
+                                                    {{ $item->stockReceipt->reference_number }}</p>
                                             </div>
                                             <span class="text-green-600">+{{ $item->quantity }}</span>
                                         </div>

@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ProductsExports;
+use App\Imports\ProductImports;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Excel;
-use Illuminate\Support\Storage;
+use Illuminate\Support\Facades\Storage;
+
+use function Laravel\Prompts\error;
 
 class ProductController extends Controller
 {
@@ -20,9 +23,9 @@ class ProductController extends Controller
     {
         $query = Product::with('category');
 
+        // Search by name, SKU, or category name
         if ($request->has('search')) {
             $search = $request->search;
-
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('sku', 'like', "%{$search}%")
@@ -32,15 +35,37 @@ class ProductController extends Controller
             });
         }
 
-
+        // Filter by category
         if ($request->has('category') && $request->category != '') {
-            $query->where('category_id', $request->category());
+            $query->where('category_id', $request->category);
         }
 
+        // Filter by stock status
+        if ($request->has('stock_status')) {
+            switch ($request->stock_status) {
+                case 'low':
+                    $query->where('stock_quantity', '<', 10)->where('stock_quantity', '>', 0);
+                    break;
+                case 'out':
+                    $query->where('stock_quantity', 0);
+                    break;
+                case 'available':
+                    $query->where('stock_quantity', '>=', 10);
+                    break;
+            }
+        }
 
+        // Filter by price range
+        if ($request->has('min_price') && $request->min_price !== null) {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->has('max_price') && $request->max_price !== null) {
+            $query->where('price', '<=', $request->max_price);
+        }
 
-        $products = Product::paginate(10);
+        $products = $query->paginate(10)->withQueryString();
         $categories = Category::all();
+
         return view('products.index', compact('products', 'categories'));
     }
 
@@ -49,7 +74,10 @@ class ProductController extends Controller
      */
     public function create()
     {
-        return view('products.create');
+        $categories = Category::all();
+        // dd($categories);
+
+        return view('products.create', compact('categories'));
     }
 
     /**
@@ -57,13 +85,22 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+
         $validated = $request->validate([
             'name' =>  'required|string|max:255|unique:products',
-            'description' => 'nullable|string'
+            'description' => 'required|nullable|string',
+            'price' => 'required',
+            'stock_quantity' => 'required|integer',
+            'sku' => 'required|unique:products',
+            'category_id' => 'required',
+            'image' => 'nullable|image'
         ]);
+
+        // dd($validated);
 
 
         if ($request->hasFile('image')) {
+            // dd(true);
             $path = $request->file('image')->store('products', 'public');
             $validated['image_path'] = $path;
         }
@@ -71,6 +108,7 @@ class ProductController extends Controller
 
         $validated['slug'] = Str::slug($validated['name']);
 
+        // dd($validated);
         Product::create($validated);
 
 
@@ -90,7 +128,8 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        //
+        $categories = Category::all();
+        return view('products.edit', compact('product', 'categories'));
     }
 
     /**
@@ -99,13 +138,13 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name' =>  'required|string|max:255|unique:products,update',
+            'name' =>  'required|string|max:255',
             'description' => 'nullable|string'
         ]);
 
 
-        if ($request->hashFile('image')) {
-            if ($product->image_path && Storage::disk('public')->exist($product->image_path)) {
+        if ($request->hasFile('image')) {
+            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
                 Storage::disk('public')->delete($product->image_path);
             }
         }
@@ -114,7 +153,7 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        return redirect()->route('categories.index')->with('success', 'Kategori berhasil diperbaharui.');
+        return redirect()->route('products.index')->with('success', 'Produk berhasil diperbaharui.');
     }
 
     /**
@@ -122,13 +161,38 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        if ($product->products()->exists()) {
-            return redirect()->route('products.index')->with('error', 'Tidak dapat mengapus product.');
+        if (!$product->exists) {
+            return redirect()->route('products.index')->with('error', 'Tidak dapat menghapus product karena tidak ditemukan.');
         }
 
         $product->delete();
 
         return redirect()->route('products.index')->with('success', 'Product berhasil dihapus.');
+    }
+
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv'
+        ]);
+
+
+
+        try {
+            Excel::import(new ProductImports, $request->file('file'));
+            return redirect()->route('product.index')->with('success', 'Product berhasil diimport');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $error = [];
+
+            foreach ($failures as $failrule) {
+                $errors[] = 'Baris' . $failrule->row() . ':' . implode(',', $failrule->errors());
+            }
+
+
+            return redirect()->back()->withErrors(['import_errors' => $errors]);
+        }
     }
 
     public function export()
